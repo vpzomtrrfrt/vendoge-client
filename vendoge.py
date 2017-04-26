@@ -5,12 +5,18 @@
 import ev3dev.ev3 as ev3
 import ev3dev.fonts
 import urllib.request
+import time
 
 m = ev3.LargeMotor("outA")
+m2 = ev3.LargeMotor("outD")
 
 scr = ev3.Screen()
 
 HEADER_TEXT = "http://lonk.pw/k8"
+AUTO_RES = None
+
+if AUTO_RES != None:
+	HEADER_TEXT = "DEBUG MODE"
 
 header_font = ev3dev.fonts.load("lutBS14")
 
@@ -36,6 +42,12 @@ def on_backspace(thing, state):
 		code = code[:-1]
 		draw_code()
 
+def parseRes(res):
+	spl = res.decode('utf-8').strip().split(",")
+	count1 = int(spl[0])
+	count2 = int(spl[1])
+	return (count1, count2)
+
 def on_enter(thing, state):
 	global code
 	if state:
@@ -43,18 +55,28 @@ def on_enter(thing, state):
 		code = "Checking..."
 		draw_code()
 		res = None
-		count = 0
-		try:
-			h = urllib.request.urlopen("https://polar-shore-34463.herokuapp.com/redeem/"+realCode)
-			res = h.read()
-			h.close()
-			count = float(res.strip())
-		except urllib.error.HTTPError as e:
-			res = e.read()
-			success = False
-		if count > 0:
-			m.run_to_rel_pos(speed_sp=800, position_sp=m.count_per_rot*count, stop_action="hold")
+		count1 = 0
+		count2 = 0
+		if AUTO_RES == None:
+			try:
+				h = urllib.request.urlopen("https://polar-shore-34463.herokuapp.com/redeem/"+realCode)
+				res = h.read()
+				h.close()
+				count1, count2 = parseRes(res)
+			except urllib.error.HTTPError as e:
+				res = e.read()
+		else:
+			res = AUTO_RES
+			count1, count2 = parseRes(res)
 		scr.draw.text((2,70), res)
+		if count1 > 0:
+			m.run_to_rel_pos(speed_sp=800, position_sp=m.count_per_rot*count1, stop_action="hold")
+		for i in range(0, count2):
+			m2.run_to_abs_pos(speed_sp=300, position_sp=-m2.count_per_rot/24, stop_action="coast")
+			m2.wait_while(m2.STATE_RUNNING)
+			m2.run_to_abs_pos(speed_sp=500, position_sp=0, stop_action="hold")
+			m2.wait_while(m2.STATE_RUNNING, 2000)
+			time.sleep(0.5)
 		code = ""
 		draw_code()
 

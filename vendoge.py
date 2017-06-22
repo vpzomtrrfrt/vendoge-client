@@ -48,6 +48,18 @@ def parseRes(res):
 	count2 = int(spl[1])
 	return (count1, count2)
 
+def runSpinner(m, count):
+	if count > 0:
+		m.run_to_rel_pos(speed_sp=800, position_sp=m.count_per_rot*count, stop_action="hold")
+
+def runDump(m, count):
+	for i in range(0, count):
+		m.run_to_abs_pos(speed_sp=300, position_sp=-m.count_per_rot/24, stop_action="coast")
+		m.wait_while(m.STATE_RUNNING)
+		m.run_to_abs_pos(speed_sp=500, position_sp=0, stop_action="hold")
+		m.wait_while(m.STATE_RUNNING, 2000)
+		time.sleep(0.5)
+
 def on_enter(thing, state):
 	global code
 	if state:
@@ -69,14 +81,8 @@ def on_enter(thing, state):
 			res = AUTO_RES
 			count1, count2 = parseRes(res)
 		scr.draw.text((2,70), res)
-		if count1 > 0:
-			m.run_to_rel_pos(speed_sp=800, position_sp=m.count_per_rot*count1, stop_action="hold")
-		for i in range(0, count2):
-			m2.run_to_abs_pos(speed_sp=300, position_sp=-m2.count_per_rot/24, stop_action="coast")
-			m2.wait_while(m2.STATE_RUNNING)
-			m2.run_to_abs_pos(speed_sp=500, position_sp=0, stop_action="hold")
-			m2.wait_while(m2.STATE_RUNNING, 2000)
-			time.sleep(0.5)
+		runSpinner(m, count1)
+		runSpinner(m2, count2)
 		code = ""
 		draw_code()
 
